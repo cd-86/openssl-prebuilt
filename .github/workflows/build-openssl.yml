@@ -7,6 +7,8 @@ on:
     tags:
       - "openssl-*-msvc-x64-static-*"
       - "openssl-*-msvc-x64-shared-*"
+      - "openssl-*-linux-x64-static-*"
+      - "openssl-*-linux-x64-shared-*"
   workflow_dispatch:
     inputs:
       openssl_ref:
@@ -40,8 +42,8 @@ jobs:
             $ref = "${{ inputs.openssl_ref }}"
           } elseif ("${{ github.ref_type }}" -eq "tag") {
             $tag = "${{ github.ref_name }}"
-            if ($tag -notmatch '^(openssl-\d+\.\d+\.\d+)-msvc-x64-(static|shared)-\d+$') {
-              throw "Tag '$tag' must look like openssl-3.5.6-msvc-x64-static-1 or openssl-3.5.6-msvc-x64-shared-1."
+            if ($tag -notmatch '^(openssl-\d+\.\d+\.\d+)-(msvc|linux)-x64-(static|shared)-\d+$') {
+              throw "Tag '$tag' must look like openssl-3.5.6-msvc-x64-static-1 or openssl-3.5.6-linux-x64-static-1."
             }
             $ref = $Matches[1]
           } else {
@@ -170,12 +172,92 @@ jobs:
             dist/*.sha256
           if-no-files-found: error
 
+  build_linux:
+    name: Build linux ${{ matrix.linkage }}
+    needs: resolve
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - linkage: static
+            configure_options: no-shared no-module no-tests no-docs no-asm
+          - linkage: shared
+            configure_options: no-tests no-docs no-asm
+    steps:
+      - name: Checkout OpenSSL source
+        run: |
+          git clone --depth 1 --branch "${{ needs.resolve.outputs.openssl_ref }}" https://github.com/openssl/openssl.git openssl-src
+        shell: bash
+
+      - name: Configure and build OpenSSL
+        working-directory: openssl-src
+        env:
+          INSTALL_DIR: ${{ github.workspace }}/install/openssl-linux-x64-${{ matrix.linkage }}
+          CONFIGURE_OPTIONS: ${{ matrix.configure_options }}
+        run: |
+          set -euo pipefail
+          ./Configure linux-x86_64 $CONFIGURE_OPTIONS --prefix="$INSTALL_DIR" --openssldir="$INSTALL_DIR/ssl" --libdir=lib
+          make -j"$(nproc)"
+          make install_sw
+        shell: bash
+
+      - name: Package OpenSSL
+        env:
+          LINKAGE: ${{ matrix.linkage }}
+          OPENSSL_VERSION: ${{ needs.resolve.outputs.openssl_version }}
+        run: |
+          set -euo pipefail
+
+          package_root_name="openssl-linux-x64-$LINKAGE"
+          package_root="$GITHUB_WORKSPACE/install/$package_root_name"
+
+          test -f "$package_root/include/openssl/ssl.h"
+          test -d "$package_root/lib"
+
+          if [[ "$LINKAGE" == "static" ]]; then
+            if find "$package_root" -type f -name "*.so*" | grep -q .; then
+              echo "Static package unexpectedly contains shared objects."
+              find "$package_root" -type f -name "*.so*"
+              exit 1
+            fi
+          else
+            compgen -G "$package_root/lib/libcrypto.so*" > /dev/null || (echo "Shared package missing libcrypto.so" && exit 1)
+            compgen -G "$package_root/lib/libssl.so*" > /dev/null || (echo "Shared package missing libssl.so" && exit 1)
+          fi
+
+          dist="$GITHUB_WORKSPACE/dist"
+          mkdir -p "$dist"
+
+          zip_name="openssl-$OPENSSL_VERSION-linux-x64-$LINKAGE.zip"
+          zip_path="$dist/$zip_name"
+          rm -f "$zip_path"
+
+          (
+            cd "$GITHUB_WORKSPACE/install"
+            zip -qr "$zip_path" "$package_root_name"
+          )
+
+          sha256=$(sha256sum "$zip_path" | awk '{print $1}')
+          printf "%s  %s\n" "$sha256" "$zip_name" > "$zip_path.sha256"
+        shell: bash
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-${{ needs.resolve.outputs.openssl_version }}-linux-x64-${{ matrix.linkage }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
   release:
     name: Publish release
     if: ${{ github.ref_type == 'tag' }}
     needs:
       - resolve
       - build
+      - build_linux
     runs-on: windows-latest
     steps:
       - name: Download build artifacts
@@ -193,16 +275,18 @@ jobs:
           $assetFiles = @(Get-ChildItem -Path release-assets -Recurse -File | Where-Object {
             $_.Name -like "*.zip" -or $_.Name -like "*.sha256"
           })
-          if ($assetFiles.Count -lt 4) {
+          if ($assetFiles.Count -lt 8) {
             Get-ChildItem -Path release-assets -Recurse | Format-Table -AutoSize
-            throw "Expected static/shared zip and sha256 files."
+            throw "Expected static/shared zip and sha256 files for Windows and Linux."
           }
 
           $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
           @"
           OpenSSL ref: $env:OPENSSL_REF
 
-          Platform: Windows x64 MSVC
+          Platforms:
+          - Windows x64 MSVC
+          - Linux x64
 
           Packages:
           - static: no-shared no-module no-tests no-docs no-asm
