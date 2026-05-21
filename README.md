@@ -31,7 +31,7 @@ openssl-windows-x64-shared/
 The static package is configured with:
 
 ```powershell
-perl Configure VC-WIN64A no-shared no-tests no-docs no-asm --prefix=<install-dir>
+perl Configure VC-WIN64A no-shared no-module no-tests no-docs no-asm --prefix=<install-dir>
 nmake
 nmake install_sw
 ```

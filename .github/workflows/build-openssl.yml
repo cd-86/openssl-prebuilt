@@ -65,7 +65,7 @@ jobs:
       matrix:
         include:
           - linkage: static
-            configure_options: no-shared no-tests no-docs no-asm
+            configure_options: no-shared no-module no-tests no-docs no-asm
           - linkage: shared
             configure_options: no-tests no-docs no-asm
     steps:
@@ -131,6 +131,7 @@ jobs:
           if ($env:LINKAGE -eq "static") {
             $dlls = @(Get-ChildItem -Path $packageRoot -Recurse -Filter "*.dll" -ErrorAction SilentlyContinue)
             if ($dlls.Count -gt 0) {
+              $dlls | ForEach-Object { Write-Host "Unexpected DLL in static package: $($_.FullName)" }
               throw "Static package unexpectedly contains DLL files."
             }
             $staticBinDir = Join-Path $packageRoot "bin"
@@ -204,7 +205,7 @@ jobs:
           Platform: Windows x64 MSVC
 
           Packages:
-          - static: no-shared no-tests no-docs no-asm
+          - static: no-shared no-module no-tests no-docs no-asm
           - shared: no-tests no-docs no-asm
           "@ | Set-Content -Encoding utf8 -Path $notesPath
 
