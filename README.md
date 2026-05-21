@@ -1,17 +1,24 @@
 # openssl-prebuilt
 
-This repository builds and publishes self-contained OpenSSL prebuilt packages for Windows.
+This repository builds and publishes self-contained OpenSSL prebuilt packages for Windows and Linux.
 
-The initial target is Windows x64 with MSVC on GitHub Actions `windows-latest`. It does not use vcpkg. OpenSSL is built directly from an official upstream git tag.
+Targets:
+
+- Windows x64 with MSVC on GitHub Actions `windows-latest`
+- Linux x64 on GitHub Actions `ubuntu-latest`
+
+OpenSSL is built directly from an official upstream git tag. It does not use vcpkg.
 
 Current default OpenSSL ref: `openssl-3.5.6`.
 
 ## Packages
 
-Each build produces both package variants:
+Each build produces both package variants for both platforms:
 
 - `openssl-<version>-windows-x64-static.zip`
 - `openssl-<version>-windows-x64-shared.zip`
+- `openssl-<version>-linux-x64-static.zip`
+- `openssl-<version>-linux-x64-shared.zip`
 
 The zip files contain a single top-level directory:
 
@@ -48,6 +55,8 @@ SHA256 files are generated next to each zip:
 
 - `openssl-<version>-windows-x64-static.zip.sha256`
 - `openssl-<version>-windows-x64-shared.zip.sha256`
+- `openssl-<version>-linux-x64-static.zip.sha256`
+- `openssl-<version>-linux-x64-shared.zip.sha256`
 
 ## Build
 
@@ -55,7 +64,7 @@ The GitHub Actions workflow builds packages when:
 
 - Changes are pushed to `main`.
 - The workflow is started manually with `workflow_dispatch`.
-- A release tag matching `openssl-*-msvc-x64-static-*` or `openssl-*-msvc-x64-shared-*` is pushed.
+- A release tag matching `openssl-*-msvc-x64-static-*`, `openssl-*-msvc-x64-shared-*`, `openssl-*-linux-x64-static-*`, or `openssl-*-linux-x64-shared-*` is pushed.
 
 Manual builds accept an `openssl_ref` input, for example:
 
@@ -78,12 +87,16 @@ git tag openssl-3.5.6-msvc-x64-static-1
 git push origin openssl-3.5.6-msvc-x64-static-1
 ```
 
-The workflow parses the OpenSSL ref from the tag, builds both static and shared packages, creates the GitHub Release, and uploads all assets:
+The workflow parses the OpenSSL ref from the tag, builds static and shared packages for Windows and Linux, creates the GitHub Release, and uploads all assets:
 
 - `openssl-3.5.6-windows-x64-static.zip`
 - `openssl-3.5.6-windows-x64-static.zip.sha256`
 - `openssl-3.5.6-windows-x64-shared.zip`
 - `openssl-3.5.6-windows-x64-shared.zip.sha256`
+- `openssl-3.5.6-linux-x64-static.zip`
+- `openssl-3.5.6-linux-x64-static.zip.sha256`
+- `openssl-3.5.6-linux-x64-shared.zip`
+- `openssl-3.5.6-linux-x64-shared.zip.sha256`
 
 Download the asset that matches your desired linkage. Use the `.sha256` file to verify the zip.
 
