@@ -1,4 +1,4 @@
-name: Build OpenSSL Windows packages
+name: Build OpenSSL packages
 
 on:
   push:
@@ -173,7 +173,7 @@ jobs:
           if-no-files-found: error
 
   build_linux:
-    name: Build linux ${{ matrix.linkage }}
+    name: Build Linux ${{ matrix.linkage }}
     needs: resolve
     runs-on: ubuntu-latest
     strategy:
