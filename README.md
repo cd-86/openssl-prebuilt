@@ -64,7 +64,7 @@ The GitHub Actions workflow builds packages when:
 
 - Changes are pushed to `main`.
 - The workflow is started manually with `workflow_dispatch`.
-- A release tag matching `openssl-*-msvc-x64-static-*`, `openssl-*-msvc-x64-shared-*`, `openssl-*-linux-x64-static-*`, or `openssl-*-linux-x64-shared-*` is pushed.
+- A release tag matching `openssl-<version>` is pushed.
 
 Manual builds accept an `openssl_ref` input, for example:
 
@@ -83,8 +83,8 @@ git clone --depth 1 --branch <openssl_ref> https://github.com/openssl/openssl.gi
 Push a tag to build and publish a GitHub Release:
 
 ```powershell
-git tag openssl-3.5.6-msvc-x64-static-1
-git push origin openssl-3.5.6-msvc-x64-static-1
+git tag openssl-3.5.6
+git push origin openssl-3.5.6
 ```
 
 The workflow parses the OpenSSL ref from the tag, builds static and shared packages for Windows and Linux, creates the GitHub Release, and uploads all assets:
@@ -113,7 +113,7 @@ set(XY_OPENSSL_LINKAGE "static" CACHE STRING "OpenSSL linkage: static or shared"
 set_property(CACHE XY_OPENSSL_LINKAGE PROPERTY STRINGS static shared)
 
 set(XY_OPENSSL_VERSION "3.5.6")
-set(XY_OPENSSL_RELEASE_TAG "openssl-3.5.6-msvc-x64-static-1")
+set(XY_OPENSSL_RELEASE_TAG "openssl-3.5.6")
 
 if(XY_OPENSSL_LINKAGE STREQUAL "static")
   set(XY_OPENSSL_SHA256 "<sha256-from-openssl-3.5.6-windows-x64-static.zip.sha256>")

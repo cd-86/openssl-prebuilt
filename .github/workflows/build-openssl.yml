@@ -5,10 +5,7 @@ on:
     branches:
       - main
     tags:
-      - "openssl-*-msvc-x64-static-*"
-      - "openssl-*-msvc-x64-shared-*"
-      - "openssl-*-linux-x64-static-*"
-      - "openssl-*-linux-x64-shared-*"
+      - "openssl-*"
   workflow_dispatch:
     inputs:
       openssl_ref:
@@ -42,8 +39,8 @@ jobs:
             $ref = "${{ inputs.openssl_ref }}"
           } elseif ("${{ github.ref_type }}" -eq "tag") {
             $tag = "${{ github.ref_name }}"
-            if ($tag -notmatch '^(openssl-\d+\.\d+\.\d+)-(msvc|linux)-x64-(static|shared)-\d+$') {
-              throw "Tag '$tag' must look like openssl-3.5.6-msvc-x64-static-1 or openssl-3.5.6-linux-x64-static-1."
+            if ($tag -notmatch '^(openssl-\d+\.\d+\.\d+)$') {
+              throw "Tag '$tag' must look like openssl-3.5.6."
             }
             $ref = $Matches[1]
           } else {
